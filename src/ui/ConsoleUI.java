@@ -1,3 +1,5 @@
+
+
 /**
  * Console User Interface - Handles all terminal/console input and output.
  * This class provides methods for displaying menus and gathering user input.
@@ -8,6 +10,26 @@ package ui;
 import java.util.Scanner;
 
 public class ConsoleUI {
+                public Scanner getScanner() {
+                    return scanner;
+                }
+            public String getOccupation() {
+                System.out.print("Enter Occupation/Job Title: ");
+                return scanner.nextLine();
+            }
+        public Double getSalary() {
+            while (true) {
+                System.out.print("Enter Salary: ");
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("q")) return null;
+                try {
+                    String sanitized = input.replace(",", "");
+                    return Double.parseDouble(sanitized);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input. Enter a numeric salary or 'q' to cancel.");
+                }
+            }
+        }
     private Scanner scanner;
     
     public ConsoleUI() {
@@ -22,15 +44,29 @@ public class ConsoleUI {
         System.out.println();
     }
     
-    public int getEmployeeId() {
+    public String getEmployeeIdInput() {
         System.out.print("Enter Employee ID: ");
-        while (!scanner.hasNextInt()) {
-            System.out.print("Invalid input. Enter Employee ID (numeric): ");
-            scanner.next();
+        String input = scanner.nextLine();
+        return input;
+    }
+
+    // For backward compatibility, keep getEmployeeId for non-cancel flows
+    public int getEmployeeId() {
+        while (true) {
+            System.out.print("Enter Employee ID: ");
+            String input = scanner.nextLine();
+            if (input.equalsIgnoreCase("q")) return -1; // -1 means cancel
+            try {
+                return Integer.parseInt(input);
+            } catch (NumberFormatException e) {
+                System.out.print("Invalid input. Enter Employee ID (numeric): ");
+            }
         }
-        int id = scanner.nextInt();
-        scanner.nextLine(); // consume newline
-        return id;
+    }
+
+    public String getFirstName() {
+        System.out.print("Enter First Name: ");
+        return scanner.nextLine();
     }
 
     public String getLastName() {
@@ -48,9 +84,13 @@ public class ConsoleUI {
         return scanner.nextLine();
     }
     
+    public String getEmail() {
+        System.out.print("Enter Email: ");
+        return scanner.nextLine();
+    }
+    
     public void displayLoginSuccess(String name) {
         System.out.println("\n✓ Login successful!");
-        System.out.println("Welcome, " + name.split(" ")[0]);
         System.out.println();
     }
     
@@ -76,6 +116,7 @@ public class ConsoleUI {
             System.out.println("3. Add Employee");
             System.out.println("4. Update Employee");
             System.out.println("5. Delete Employee");
+            System.out.println("6. Search Employee");
         }
         
         System.out.println("0. Logout");

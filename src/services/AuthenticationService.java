@@ -8,6 +8,8 @@ package services;
 
 import dao.EmployeeDAO;
 import interfaces.Authenticatable;
+import java.util.List;
+import models.Employee;
 import models.Person;
 
 public class AuthenticationService implements Authenticatable {
@@ -23,7 +25,17 @@ public class AuthenticationService implements Authenticatable {
     public boolean authenticate(int empId, String lastName, String dob, String ssn) {
         Person user = employeeDAO.authenticate(empId, lastName, dob, ssn);
         if (user != null) {
-            this.currentUser = user;
+            // If user is an employee, fetch full record with salary/occupation
+            if (user instanceof models.Employee) {
+                models.Employee fullEmp = employeeDAO.getEmployeeById(empId);
+                if (fullEmp != null) {
+                    this.currentUser = fullEmp;
+                } else {
+                    this.currentUser = user;
+                }
+            } else {
+                this.currentUser = user;
+            }
             return true;
         }
         return false;
@@ -49,5 +61,19 @@ public class AuthenticationService implements Authenticatable {
     
     public boolean isLoggedIn() {
         return currentUser != null;
+    }
+
+    // CRUD methods for admin
+    public List<Employee> getAllEmployees() {
+        return employeeDAO.getAllEmployees();
+    }
+    public boolean addEmployee(Employee emp, String hireDate, String ssn, double salary) {
+        return employeeDAO.addEmployee(emp, hireDate, ssn, salary);
+    }
+    public boolean updateEmployee(Employee emp) {
+        return employeeDAO.updateEmployee(emp);
+    }
+    public boolean deleteEmployee(int empId) {
+        return employeeDAO.deleteEmployee(empId);
     }
 }

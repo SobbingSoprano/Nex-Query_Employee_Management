@@ -34,4 +34,10 @@ public class HRAdminView {
         System.out.println("╚════════════════════════════════════╝");
         System.out.println();
     }
+
+    public void displayAdminWelcome(String userFullName) {
+        String firstName = userFullName.split(" ")[0];
+        System.out.println("Welcome, " + firstName + "!");
+        System.out.println();
+    }
 }

@@ -9,10 +9,27 @@ import interfaces.DataAccessible;
 
 public class HRAdmin extends Person implements DataAccessible {
     private String role;
-    
-    public HRAdmin(int empId, String firstName, String lastName, String email) {
+    private double salary;
+    private String occupation;
+
+    public HRAdmin(int empId, String firstName, String lastName, String email, double salary, String occupation) {
         super(empId, firstName, lastName, email);
         this.role = "HR_ADMIN";
+        this.salary = salary;
+        this.occupation = occupation;
+    }
+
+    // For backward compatibility
+    public HRAdmin(int empId, String firstName, String lastName, String email) {
+        this(empId, firstName, lastName, email, 0.0, null);
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public String getOccupation() {
+        return occupation;
     }
     
     @Override
