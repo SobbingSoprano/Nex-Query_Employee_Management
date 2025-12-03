@@ -117,6 +117,8 @@ public class ConsoleUI {
             System.out.println("4. Update Employee");
             System.out.println("5. Delete Employee");
             System.out.println("6. Search Employee");
+            System.out.println("7. Adjust Range of Salaries");
+            System.out.println("8. Payroll Summary Generator");
         }
         
         System.out.println("0. Logout");
@@ -127,7 +129,9 @@ public class ConsoleUI {
             System.out.print("Invalid input. Enter a number: ");
             scanner.next();
         }
-        return scanner.nextInt();
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // consume leftover newline
+        return choice;
     }
     
     public void close() {

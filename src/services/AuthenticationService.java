@@ -13,6 +13,22 @@ import models.Employee;
 import models.Person;
 
 public class AuthenticationService implements Authenticatable {
+        // Payroll summary methods
+        public List<String[]> getPayrollByJobTitle() {
+            return employeeDAO.getPayrollByJobTitle();
+        }
+
+        public List<String[]> getPayrollByDivision() {
+            return employeeDAO.getPayrollByDivision();
+        }
+
+        public List<String[]> getEmployeePayHistory(int empId) {
+            return employeeDAO.getEmployeePayHistory(empId);
+        }
+
+        public List<Employee> getEmployeesHiredInRange(String startDate, String endDate) {
+            return employeeDAO.getEmployeesHiredInRange(startDate, endDate);
+        }
     private EmployeeDAO employeeDAO;
     private Person currentUser;
     

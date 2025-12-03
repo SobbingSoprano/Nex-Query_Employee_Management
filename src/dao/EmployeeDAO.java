@@ -16,6 +16,89 @@ import models.Person;
 import utils.DatabaseConnection;
 
 public class EmployeeDAO {
+        // Payroll summary: total payroll by job title
+        public List<String[]> getPayrollByJobTitle() {
+            List<String[]> result = new ArrayList<>();
+            String query = "SELECT jt.job_title, SUM(e.Salary) AS total_payroll " +
+                "FROM employees e " +
+                "JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                "JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                "GROUP BY jt.job_title";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    result.add(new String[] { rs.getString("job_title"), String.valueOf(rs.getDouble("total_payroll")) });
+                }
+            } catch (SQLException e) {
+                System.err.println("Error generating payroll by job title: " + e.getMessage());
+            }
+            return result;
+        }
+
+        // Payroll summary: total payroll by division
+        public List<String[]> getPayrollByDivision() {
+            List<String[]> result = new ArrayList<>();
+            String query = "SELECT d.Name, SUM(e.Salary) AS total_payroll " +
+                "FROM employees e " +
+                "JOIN employee_division ed ON e.empid = ed.empid " +
+                "JOIN division d ON ed.div_ID = d.ID " +
+                "GROUP BY d.Name";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    result.add(new String[] { rs.getString("Name"), String.valueOf(rs.getDouble("total_payroll")) });
+                }
+            } catch (SQLException e) {
+                System.err.println("Error generating payroll by division: " + e.getMessage());
+            }
+            return result;
+        }
+
+        // Employee pay history (assumes payroll table with empid, pay_date, salary)
+        public List<String[]> getEmployeePayHistory(int empId) {
+            List<String[]> result = new ArrayList<>();
+            String query = "SELECT pay_date, Earnings FROM payroll WHERE empid = ? ORDER BY pay_date DESC";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setInt(1, empId);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    result.add(new String[] { rs.getString("pay_date"), String.valueOf(rs.getDouble("Earnings")) });
+                }
+            } catch (SQLException e) {
+                System.err.println("Error retrieving pay history: " + e.getMessage());
+            }
+            return result;
+        }
+
+        // Employees hired in a date range
+        public List<Employee> getEmployeesHiredInRange(String startDate, String endDate) {
+            List<Employee> employees = new ArrayList<>();
+            String query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, e.HireDate, e.SSN, jt.job_title " +
+                "FROM employees e " +
+                "LEFT JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                "LEFT JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                "WHERE e.HireDate BETWEEN ? AND ?";
+            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setString(1, startDate);
+                stmt.setString(2, endDate);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    employees.add(new Employee(
+                        rs.getInt("empid"),
+                        rs.getString("Fname"),
+                        rs.getString("Lname"),
+                        rs.getString("Email"),
+                        rs.getDouble("Salary"),
+                        rs.getString("HireDate"),
+                        rs.getString("SSN"),
+                        rs.getString("job_title")
+                    ));
+                }
+            } catch (SQLException e) {
+                System.err.println("Error retrieving employees hired in range: " + e.getMessage());
+            }
+            return employees;
+        }
     private Connection connection;
     
     public EmployeeDAO() {
