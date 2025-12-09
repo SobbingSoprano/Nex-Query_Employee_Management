@@ -16,6 +16,119 @@ import models.Person;
 import utils.DatabaseConnection;
 
 public class EmployeeDAO {
+                        // Authenticate user by empId and password
+                        public Person authenticateByPassword(int empId, String password) {
+                            String query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, e.HireDate, e.SSN, jt.job_title_id, jt.job_title " +
+                                "FROM employees e " +
+                                "JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                                "JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                                "WHERE e.empid = ? AND e.password = ?";
+                            String hashedPassword = utils.PasswordUtil.hashPassword(password);
+                            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                                stmt.setInt(1, empId);
+                                stmt.setString(2, hashedPassword);
+                                ResultSet rs = stmt.executeQuery();
+                                if (rs.next()) {
+                                    int jobTitleId = rs.getInt("job_title_id");
+                                    String firstName = rs.getString("Fname");
+                                    String lastNameFromDB = rs.getString("Lname");
+                                    String email = rs.getString("Email");
+                                    double salary = rs.getDouble("Salary");
+                                    String occupation = rs.getString("job_title");
+                                    String hireDateDb = rs.getString("HireDate");
+                                    String ssnDb = rs.getString("SSN");
+                                    if (jobTitleId >= 900) {
+                                        return new models.HRAdmin(empId, firstName, lastNameFromDB, email, salary, occupation);
+                                    } else {
+                                        return new Employee(empId, firstName, lastNameFromDB, email, salary, hireDateDb, ssnDb, occupation);
+                                    }
+                                }
+                            } catch (SQLException e) {
+                                System.err.println("Authentication error: " + e.getMessage());
+                            }
+                            return null;
+                        }
+
+                        // Reset password for a user
+                        public boolean resetPassword(int empId, String newPassword) {
+                            String query = "UPDATE employees SET password = ? WHERE empid = ?";
+                            String hashedPassword = utils.PasswordUtil.hashPassword(newPassword);
+                            try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                                stmt.setString(1, hashedPassword);
+                                stmt.setInt(2, empId);
+                                return stmt.executeUpdate() > 0;
+                            } catch (SQLException e) {
+                                System.err.println("Error resetting password: " + e.getMessage());
+                                return false;
+                            }
+                        }
+                    // Get all unique job titles (departments/roles)
+                    public List<String> getAllJobTitles() {
+                        List<String> jobTitles = new ArrayList<>();
+                        String query = "SELECT DISTINCT job_title FROM job_titles ORDER BY job_title";
+                        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                            ResultSet rs = stmt.executeQuery();
+                            while (rs.next()) {
+                                jobTitles.add(rs.getString("job_title"));
+                            }
+                        } catch (SQLException e) {
+                            System.err.println("Error retrieving job titles: " + e.getMessage());
+                        }
+                        return jobTitles;
+                    }
+                // Get employees by job title (role/department)
+                public List<Employee> getEmployeesByJobTitle(String jobTitle) {
+                    List<Employee> employees = new ArrayList<>();
+                    String query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, e.HireDate, e.SSN, jt.job_title " +
+                        "FROM employees e " +
+                        "LEFT JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                        "LEFT JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                        "WHERE jt.job_title = ?";
+                    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                        stmt.setString(1, jobTitle);
+                        ResultSet rs = stmt.executeQuery();
+                        while (rs.next()) {
+                            employees.add(new Employee(
+                                rs.getInt("empid"),
+                                rs.getString("Fname"),
+                                rs.getString("Lname"),
+                                rs.getString("Email"),
+                                rs.getDouble("Salary"),
+                                rs.getString("HireDate"),
+                                rs.getString("SSN"),
+                                rs.getString("job_title")
+                            ));
+                        }
+                    } catch (SQLException e) {
+                        System.err.println("Error retrieving employees by job title: " + e.getMessage());
+                    }
+                    return employees;
+                }
+            // Get all HR Admin users
+            public List<models.HRAdmin> getAllHRAdmins() {
+                List<models.HRAdmin> admins = new ArrayList<>();
+                String query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, jt.job_title " +
+                    "FROM employees e " +
+                    "JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                    "JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                    "WHERE jt.job_title_id >= 900";
+                try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                    ResultSet rs = stmt.executeQuery();
+                    while (rs.next()) {
+                        admins.add(new models.HRAdmin(
+                            rs.getInt("empid"),
+                            rs.getString("Fname"),
+                            rs.getString("Lname"),
+                            rs.getString("Email"),
+                            rs.getDouble("Salary"),
+                            rs.getString("job_title")
+                        ));
+                    }
+                } catch (SQLException e) {
+                    System.err.println("Error retrieving HR Admins: " + e.getMessage());
+                }
+                return admins;
+            }
         // Payroll summary: total payroll by job title
         public List<String[]> getPayrollByJobTitle() {
             List<String[]> result = new ArrayList<>();
@@ -114,16 +227,30 @@ public class EmployeeDAO {
      * @return Employee or HRAdmin object if authenticated, null otherwise
      */
     public Person authenticate(int empId, String lastName, String hireDate, String ssn) {
-        String query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, e.HireDate, e.SSN, jt.job_title_id, jt.job_title " +
-            "FROM employees e " +
-            "JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
-            "JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
-            "WHERE e.empid = ? AND e.Lname = ? AND e.HireDate = ? AND e.SSN = ?";
+        String query;
+        boolean useAllFields = lastName != null && !lastName.isEmpty() && hireDate != null && !hireDate.isEmpty();
+        if (useAllFields) {
+            query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, e.HireDate, e.SSN, jt.job_title_id, jt.job_title " +
+                "FROM employees e " +
+                "JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                "JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                "WHERE e.empid = ? AND e.Lname = ? AND e.HireDate = ? AND e.SSN = ?";
+        } else {
+            query = "SELECT e.empid, e.Fname, e.Lname, e.Email, e.Salary, e.HireDate, e.SSN, jt.job_title_id, jt.job_title " +
+                "FROM employees e " +
+                "JOIN employee_job_titles ejt ON e.empid = ejt.empid " +
+                "JOIN job_titles jt ON ejt.job_title_id = jt.job_title_id " +
+                "WHERE e.empid = ? AND e.SSN = ?";
+        }
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setInt(1, empId);
-            stmt.setString(2, lastName);
-            stmt.setString(3, hireDate);
-            stmt.setString(4, ssn);
+            if (useAllFields) {
+                stmt.setString(2, lastName);
+                stmt.setString(3, hireDate);
+                stmt.setString(4, ssn);
+            } else {
+                stmt.setString(2, ssn);
+            }
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 int jobTitleId = rs.getInt("job_title_id");

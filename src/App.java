@@ -39,11 +39,9 @@ public class App {
         
         while (!loggedIn && attempts < MAX_ATTEMPTS) {
             int empId = ui.getEmployeeId();
-            String lastName = ui.getLastName();
-            String hireDate = ui.getHireDate();
-            String ssn = ui.getSSN();
+            String password = ui.getPassword();
 
-            if (authService.authenticate(empId, lastName, hireDate, ssn)) {
+            if (authService.authenticateByPassword(empId, password)) {
                 Person currentUser = authService.getCurrentUser();
                 ui.displayLoginSuccess(currentUser.getFullName());
 
@@ -64,6 +62,28 @@ public class App {
                     boolean isAdmin = "HR_ADMIN".equals(currentUser.getRole());
                     int choice = ui.displayMainMenu(isAdmin);
                     switch (choice) {
+                        case 9:
+                            // Password reset option for all users
+                            System.out.print("Would you like to reset your password? (y/n): ");
+                            String resetChoice = ui.readLine();
+                            if ("y".equalsIgnoreCase(resetChoice)) {
+                                System.out.print("Enter your current password: ");
+                                String oldPassword = ui.getPassword();
+                                // Verify old password
+                                boolean verified = authService.authenticateByPassword(currentUser.getEmpId(), oldPassword);
+                                if (!verified) {
+                                    System.out.println("Current password is incorrect. Password reset aborted.\n");
+                                    break;
+                                }
+                                String newPassword = ui.getNewPassword();
+                                boolean success = authService.resetPassword(currentUser.getEmpId(), newPassword);
+                                if (success) {
+                                    System.out.println("Password reset successfully.\n");
+                                } else {
+                                    System.out.println("Failed to reset password.\n");
+                                }
+                            }
+                            break;
                         case 8:
                             if (isAdmin) {
                                 System.out.println("\nPayroll Summary Generator:");
@@ -74,7 +94,7 @@ public class App {
                                 System.out.println("3. Employee pay history");
                                 System.out.println("4. Employees hired in date range");
                                 System.out.print("Enter option (1-4, or 'q' to cancel): ");
-                                String summaryType = ui.getScanner().nextLine();
+                                String summaryType = ui.readLine();
                                 if ("q".equalsIgnoreCase(summaryType)) break;
                                 switch (summaryType) {
                                     case "1":
@@ -100,7 +120,7 @@ public class App {
                                     case "3":
                                         // Employee pay history by ID, display name
                                         System.out.print("Enter Employee ID: ");
-                                        String empIdInput = ui.getScanner().nextLine();
+                                        String empIdInput = ui.readLine();
                                         int empIdHist = -1;
                                         try { empIdHist = Integer.parseInt(empIdInput); } catch (NumberFormatException e) { System.out.println("Invalid ID."); break; }
                                         models.Employee foundEmp = null;
@@ -125,9 +145,9 @@ public class App {
                                     case "4":
                                         // Employees hired in date range
                                         System.out.print("Enter start date (YYYY-MM-DD): ");
-                                        String startDate = ui.getScanner().nextLine();
+                                        String startDate = ui.readLine();
                                         System.out.print("Enter end date (YYYY-MM-DD): ");
-                                        String endDate = ui.getScanner().nextLine();
+                                        String endDate = ui.readLine();
                                         List<models.Employee> hiredRange = authService.getEmployeesHiredInRange(startDate, endDate);
                                         System.out.println("\nEmployees hired between " + startDate + " and " + endDate + ":");
                                         System.out.printf("%-10s %-20s %-15s\n", "ID", "Name", "Hire Date");
@@ -147,7 +167,7 @@ public class App {
                                                     if (isAdmin) {
                                                         System.out.println("\nAdjust Range of Salaries:");
                                                         System.out.print("Enter a salary to adjust (e.g., 50000- enter 'q' at any prompt to cancel- WARNING: This will ERASE your progress): ");
-                                                        String baseSalaryInput = ui.getScanner().nextLine();
+                                                        String baseSalaryInput = ui.readLine();
                                                         double baseSalary;
                                                         try {
                                                             baseSalary = Double.parseDouble(baseSalaryInput.replace(",", ""));
@@ -156,7 +176,7 @@ public class App {
                                                             break;
                                                         }
                                                         System.out.print("Enter percentage for salary range (e.g., 5 for +5%/-5% or 'q' to cancel): ");
-                                                        String percentInput = ui.getScanner().nextLine();
+                                                        String percentInput = ui.readLine();
                                                         if ("q".equalsIgnoreCase(percentInput)) {
                                                             System.out.println("\nReturning to menu.\n");
                                                             break;
@@ -174,10 +194,10 @@ public class App {
                                                             double upperBound = baseSalary * (1 + Math.abs(percent) / 100.0);
                                                             System.out.printf("\nSalary range to be adjusted: $%,.2f - $%,.2f\n", lowerBound, upperBound);
                                                             System.out.print("Is this the salary range you wish to proceed with? (y/n): ");
-                                                            String rangeConfirm = ui.getScanner().nextLine();
+                                                            String rangeConfirm = ui.readLine();
                                                             if ("n".equalsIgnoreCase(rangeConfirm)) {
                                                                 System.out.print("Re-enter percentage for salary range (e.g., 5 for +5%/-5% or 'q' to cancel): ");
-                                                                String newPercentInput = ui.getScanner().nextLine();
+                                                                String newPercentInput = ui.readLine();
                                                                 if ("q".equalsIgnoreCase(newPercentInput)) {
                                                                     System.out.println("Returning to menu.\n");
                                                                     break;
@@ -208,7 +228,7 @@ public class App {
                                                             // Prompt for adjustment percentage
                                                             while (true) {
                                                                 System.out.print("Enter percentage to increase salaries by (e.g., 5 for 5% or 'q' to cancel): ");
-                                                                String adjInput = ui.getScanner().nextLine();
+                                                                String adjInput = ui.readLine();
                                                                 if ("q".equalsIgnoreCase(adjInput)) {
                                                                     System.out.println("Returning to menu.\n");
                                                                     break;
@@ -228,7 +248,7 @@ public class App {
                                                                         emp.getEmpId(), emp.getFullName(), emp.getSalary(), newSal);
                                                                 }
                                                                 System.out.print("\nWould you like to confirm this salary adjustment? (y/n): ");
-                                                                String confirmAdj = ui.getScanner().nextLine();
+                                                                String confirmAdj = ui.readLine();
                                                                 if ("y".equalsIgnoreCase(confirmAdj)) {
                                                                     // Update salaries
                                                                     int updated = 0;
@@ -280,11 +300,49 @@ public class App {
                             if (isAdmin) {
                                 System.out.println("\nAll Employees:");
                                 for (models.Employee emp : authService.getAllEmployees()) {
-                                    System.out.println("ID: " + emp.getEmpId() + ", Name: " + emp.getFullName() + ", Email: " + emp.getEmail());
+                                    System.out.println("ID: " + emp.getEmpId() + ", Name: " + emp.getFullName() + ", Email: " + emp.getEmail() + ", Role: " + emp.getOccupation());
                                 }
                                 System.out.println();
+                                System.out.print("Would you like to filter employees by role/department? (y/n): ");
+                                String filterChoice = ui.readLine();
+                                if ("y".equalsIgnoreCase(filterChoice)) {
+                                    List<String> jobTitles = authService.getAllJobTitles();
+                                    if (jobTitles.isEmpty()) {
+                                        System.out.println("No roles/departments found in the database.\n");
+                                    } else {
+                                        System.out.println("Select a role/department to filter by:");
+                                        for (int i = 0; i < jobTitles.size(); i++) {
+                                            System.out.println((i + 1) + ". " + jobTitles.get(i));
+                                        }
+                                        System.out.print("Enter number: ");
+                                        int selected = -1;
+                                        try {
+                                            selected = Integer.parseInt(ui.readLine());
+                                        } catch (NumberFormatException e) {
+                                            System.out.println("Invalid input. Returning to menu.\n");
+                                            break;
+                                        }
+                                        if (selected < 1 || selected > jobTitles.size()) {
+                                            System.out.println("Invalid selection. Returning to menu.\n");
+                                            break;
+                                        }
+                                        String jobTitle = jobTitles.get(selected - 1);
+                                        List<models.Employee> filtered = authService.getEmployeesByJobTitle(jobTitle);
+                                        if (filtered.isEmpty()) {
+                                            System.out.println("No employees found for role/department: " + jobTitle + "\n");
+                                        } else {
+                                            System.out.println("\nFiltered Employees:");
+                                            for (models.Employee emp : filtered) {
+                                                System.out.println("ID: " + emp.getEmpId() + ", Name: " + emp.getFullName() + ", Email: " + emp.getEmail() + ", Role: " + emp.getOccupation());
+                                            }
+                                            System.out.println();
+                                        }
+                                    }
+                                }
                             } else {
-                                ui.displayAccessDenied();
+                                // Employee: List all Admin users
+                                java.util.List<models.HRAdmin> adminList = authService.getAllHRAdmins();
+                                ui.displayAdminList(adminList);
                             }
                             break;
                         case 3:
@@ -391,7 +449,7 @@ public class App {
                                     break;
                                 }
                                 System.out.print("\nAre you sure you wish to delete '" + empToDelete.getFirstName() + "'? This action cannot be reversed. (y/n): ");
-                                String confirm = ui.getScanner().nextLine();
+                                String confirm = ui.readLine();
                                 if (!"y".equalsIgnoreCase(confirm)) {
                                     System.out.println("\nAction aborted.\n");
                                     break;
@@ -441,10 +499,10 @@ public class App {
                                     System.out.println("Occupation: " + (foundEmp.getOccupation() != null ? foundEmp.getOccupation() : "N/A"));
                                     // Salary increase option
                                     System.out.print("\nWould you like to increase this employee's salary? (y/n): ");
-                                    String incChoice = ui.getScanner().nextLine();
+                                    String incChoice = ui.readLine();
                                     if ("y".equalsIgnoreCase(incChoice)) {
                                         System.out.print("Enter percentage to increase salary by (e.g., 5 for 5%): ");
-                                        String percentInput = ui.getScanner().nextLine();
+                                        String percentInput = ui.readLine();
                                         try {
                                             double percent = Double.parseDouble(percentInput);
                                             double oldSalary = foundEmp.getSalary();
@@ -452,7 +510,7 @@ public class App {
                                             System.out.printf("Original Salary: $%,.2f\n", oldSalary);
                                             System.out.printf("Proposed New Salary: $%,.2f\n", newSalary);
                                             System.out.print("Would you like to confirm this salary adjustment for " + foundEmp.getFullName() + "? (y/n): ");
-                                            String confirm = ui.getScanner().nextLine();
+                                            String confirm = ui.readLine();
                                             if ("y".equalsIgnoreCase(confirm)) {
                                                 // Update salary in DB
                                                 foundEmp = new models.Employee(foundEmp.getEmpId(), foundEmp.getFirstName(), foundEmp.getLastName(), foundEmp.getEmail(), newSalary, foundEmp.getHireDate(), foundEmp.getSSN(), foundEmp.getOccupation());
@@ -466,6 +524,19 @@ public class App {
                                             }
                                         } catch (NumberFormatException e) {
                                             System.out.println("Invalid percentage. Salary adjustment cancelled.\n");
+                                        }
+                                    }
+                                    // Prompt to export employee data to CSV
+                                    System.out.print("Would you like to export this employee's data to a CSV file? (y/n): ");
+                                    String exportChoice = ui.readLine();
+                                    if ("y".equalsIgnoreCase(exportChoice)) {
+                                        System.out.print("Enter file path for CSV export (e.g., employee.csv): ");
+                                        String filePath = ui.readLine();
+                                        boolean success = utils.CsvExportUtil.exportEmployeeToCsv(foundEmp, filePath);
+                                        if (success) {
+                                            System.out.println("Employee data exported successfully to " + filePath + "\n");
+                                        } else {
+                                            System.out.println("Failed to export employee data.\n");
                                         }
                                     }
                                 } else {

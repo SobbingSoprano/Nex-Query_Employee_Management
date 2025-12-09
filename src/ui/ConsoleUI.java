@@ -10,27 +10,38 @@ package ui;
 import java.util.Scanner;
 
 public class ConsoleUI {
-                public Scanner getScanner() {
-                    return scanner;
-                }
-            public String getOccupation() {
-                System.out.print("Enter Occupation/Job Title: ");
-                return scanner.nextLine();
-            }
+        // Generic method for reading a line of input
+        public String readLine() {
+            return scanner.nextLine();
+        }
+
+        // Method for occupation input
+        public String getOccupation() {
+            System.out.print("Enter Occupation/Job Title: ");
+            return scanner.nextLine();
+        }
+    public String getPassword() {
+        System.out.print("Enter your password: ");
+        return scanner.nextLine();
+    }
+
+    public String getNewPassword() {
+        System.out.print("Enter your new password: ");
+        return scanner.nextLine();
+    }
         public Double getSalary() {
             while (true) {
                 System.out.print("Enter Salary: ");
-                String input = scanner.nextLine();
-                if (input.equalsIgnoreCase("q")) return null;
                 try {
-                    String sanitized = input.replace(",", "");
-                    return Double.parseDouble(sanitized);
+                    String input = scanner.nextLine();
+                    if (input.equalsIgnoreCase("q")) return null;
+                    return Double.parseDouble(input.replace(",", ""));
                 } catch (NumberFormatException e) {
                     System.out.println("Invalid input. Enter a numeric salary or 'q' to cancel.");
                 }
             }
         }
-    private Scanner scanner;
+    private final Scanner scanner;
     
     public ConsoleUI() {
         this.scanner = new Scanner(System.in);
@@ -110,7 +121,9 @@ public class ConsoleUI {
         System.out.println("Main Menu:");
         System.out.println("─────────────────────────────────────");
         System.out.println("1. View My Information");
-        
+        if (!isAdmin) {
+            System.out.println("2. List All Admin Users");
+        }
         if (isAdmin) {
             System.out.println("2. View All Employees");
             System.out.println("3. Add Employee");
@@ -120,11 +133,10 @@ public class ConsoleUI {
             System.out.println("7. Adjust Range of Salaries");
             System.out.println("8. Payroll Summary Generator");
         }
-        
+        System.out.println("9. Reset Password");
         System.out.println("0. Logout");
         System.out.println("─────────────────────────────────────");
         System.out.print("Select an option: ");
-        
         while (!scanner.hasNextInt()) {
             System.out.print("Invalid input. Enter a number: ");
             scanner.next();
@@ -132,6 +144,21 @@ public class ConsoleUI {
         int choice = scanner.nextInt();
         scanner.nextLine(); // consume leftover newline
         return choice;
+    }
+
+    /**
+     * Displays a list of all HR Admin users with their names and emails.
+     */
+    public void displayAdminList(java.util.List<models.HRAdmin> adminList) {
+        System.out.println("\n─────────────── HR Admin Users ───────────────");
+        if (adminList == null || adminList.isEmpty()) {
+            System.out.println("No HR Admin users found.");
+            return;
+        }
+        for (models.HRAdmin admin : adminList) {
+            System.out.printf("- %s %s (Email: %s)\n", admin.getFirstName(), admin.getLastName(), admin.getEmail());
+        }
+        System.out.println("──────────────────────────────────────────────\n");
     }
     
     public void close() {

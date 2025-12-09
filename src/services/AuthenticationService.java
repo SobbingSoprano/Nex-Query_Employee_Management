@@ -13,6 +13,27 @@ import models.Employee;
 import models.Person;
 
 public class AuthenticationService implements Authenticatable {
+                        public boolean authenticateByPassword(int empId, String password) {
+                            Person user = employeeDAO.authenticateByPassword(empId, password);
+                            if (user != null) {
+                                this.currentUser = user;
+                                return true;
+                            }
+                            return false;
+                        }
+
+                        public boolean resetPassword(int empId, String newPassword) {
+                            return employeeDAO.resetPassword(empId, newPassword);
+                        }
+                    public List<String> getAllJobTitles() {
+                        return employeeDAO.getAllJobTitles();
+                    }
+                public List<models.Employee> getEmployeesByJobTitle(String jobTitle) {
+                    return employeeDAO.getEmployeesByJobTitle(jobTitle);
+                }
+            public java.util.List<models.HRAdmin> getAllHRAdmins() {
+                return employeeDAO.getAllHRAdmins();
+            }
         // Payroll summary methods
         public List<String[]> getPayrollByJobTitle() {
             return employeeDAO.getPayrollByJobTitle();
